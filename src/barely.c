@@ -7,16 +7,24 @@ enum {
 
 #define PERSIST_INVERTED 1
 #define PERSIST_BLUETOOTH 2
+#define TOP_LEFT 0
+#define TOP_RIGHT 1
+#define BOTTOM_LEFT 2
+#define BOTTOM_RIGHT 3
 
 static Window *window;
 static Layer *canvas;
 
-static Layer *layers[4];
+static Layer *digit_layers[4];
 int digits[4];
+
+static Layer *line_layers[5*4]; // max 5 layers per digit
+static PropertyAnimation *line_animations[5*4];
 
 bool invertInterface = false;
 bool bluetoothIndicator = false;
 bool bluetoothConnection = true;
+bool animationRunning = false;
 
 static unsigned short get_display_hour(unsigned short hour) {
 	if (clock_is_24h_style()) {
@@ -26,48 +34,140 @@ static unsigned short get_display_hour(unsigned short hour) {
 	return display_hour ? display_hour : 12;
 }
 
-void drawHorizontalLine(GContext* ctx, GPoint start, GPoint goal) {
+static void animation_stopped(PropertyAnimation *animation, bool finished, void *data) {
+  property_animation_destroy(animation);
+  animation=NULL;
+}
+
+static void animate_layer_bounds(int layerid, GRect fromRect, GRect toRect)
+{
+  if(line_animations[layerid]) // already running?
+    return;
+  
+  line_animations[layerid] = property_animation_create_layer_frame(line_layers[layerid], &fromRect, &toRect);
+  animation_set_handlers((Animation*) line_animations[layerid], (AnimationHandlers) {
+    .stopped = (AnimationStoppedHandler) animation_stopped,
+  }, NULL);
+  animation_set_duration((Animation*)line_animations[layerid],3000);
+  animation_set_curve((Animation*)line_animations[layerid],AnimationCurveEaseInOut);
+  //APP_LOG(APP_LOG_LEVEL_DEBUG,"animation running...");
+  animation_schedule((Animation*)line_animations[layerid]);
+}
+
+void drawLineHorizontal(GContext* ctx, GPoint start, GPoint goal) {
 	graphics_fill_rect(ctx, GRect(start.x, start.y - 1, goal.x - start.x, 3), 0, GCornerNone);
 }
 
-void drawVerticalLine(GContext* ctx, GPoint start, GPoint goal) {
+void drawLineVertical(GContext* ctx, GPoint start, GPoint goal) {
 	graphics_fill_rect(ctx, GRect(start.x - 1, start.y - 1, 3, goal.y - start.y + 3), 0, GCornerNone);
 }
 
-void renderNumber(int number, GContext* ctx) {
-	if (number == 1) {
-		drawHorizontalLine(ctx, GPoint(0,26), GPoint(22,26));
-		drawVerticalLine(ctx, GPoint(22,26), GPoint(22,55));
-		drawHorizontalLine(ctx, GPoint(0,55), GPoint(22,55));
-		drawVerticalLine(ctx, GPoint(47,0), GPoint(47,55));
-		drawHorizontalLine(ctx, GPoint(47,55), GPoint(71,55));
+void drawLine(GContext* ctx, GPoint start, GPoint goal, GPoint offset, int layerid) {
+  GRect from;
+  GRect to;
+  
+  // check if vertical or horizontal
+  bool horizontal = (start.y == goal.y);
+  
+  // animation starts in between start and goal
+  if(horizontal) {
+    from.origin.x = (goal.x - start.x) / 2 + start.x + offset.x;
+    from.origin.y = start.y - 1 + offset.y;
+    from.size.w = 3;
+    from.size.h = 3;
+  } else {
+    from.origin.x = start.x - 1 + offset.x;
+    from.origin.y = (goal.y - start.y) / 2 + start.y - 1 + offset.y;
+    from.size.w = 3;
+    from.size.h = 3;
+  }
+  // animation ends in start and goal
+  if(horizontal) {
+    to.origin.x = start.x + offset.x;
+    to.origin.y = start.y - 1 + offset.y;
+    to.size.w = goal.x - start.x ;
+    to.size.h = 3;
+  } else {
+    to.origin.x = start.x - 1 + offset.x;
+    to.origin.y = start.y - 1 + offset.y;
+    to.size.w = 3;
+    to.size.h = goal.y - start.y + 3;
+  }
+  layer_set_frame(line_layers[layerid],from);
+  //to=to;
+  animate_layer_bounds(layerid, from, to);
+}
+
+void drawLine_callback(Layer *layer, GContext* ctx) {
+  graphics_context_set_fill_color(ctx,GColorBlack);
+  graphics_fill_rect(ctx,GRect(0,0,144,168),0,GCornerNone);
+}
+
+void renderNumber(int number, GContext* ctx, unsigned char quadrant) {
+  GPoint offset;
+  unsigned int line_layer_offset=0;
+  if (invertInterface) {
+    graphics_context_set_fill_color(ctx, GColorWhite);
+  }
+  switch (quadrant) {
+    case TOP_LEFT:
+      offset.x=0;
+      offset.y=0;
+      break;
+    case TOP_RIGHT:
+      offset.x=73;
+      offset.y=0;
+      line_layer_offset=5;
+      break;
+    case BOTTOM_LEFT:
+      offset.x=0;
+      offset.y=85;
+      line_layer_offset=10;
+      break;
+    case BOTTOM_RIGHT:
+      offset.x=73;
+      offset.y=85;
+      line_layer_offset=15;
+      break;
+  }
+  // reset line layers
+  for (int i=0; i<5; layer_set_frame(line_layers[line_layer_offset+i],GRect(0,0,0,0)),i++);
+  
+  // draw new line layers
+  //offset=offset;
+  if (number == 1) {
+		drawLine(ctx, GPoint(0,26), GPoint(22,26), offset, line_layer_offset);
+		drawLine(ctx, GPoint(22,26), GPoint(22,55), offset, line_layer_offset+1);
+		drawLine(ctx, GPoint(0,55), GPoint(22,55), offset, line_layer_offset+2);
+		drawLine(ctx, GPoint(47,0), GPoint(47,55), offset, line_layer_offset+3);
+		drawLine(ctx, GPoint(47,55), GPoint(71,55), offset, line_layer_offset+4);
 	} else if (number == 2) {
-		drawHorizontalLine(ctx, GPoint(0,26), GPoint(47,26));
-		drawHorizontalLine(ctx, GPoint(22,55), GPoint(71,55));
+		drawLine(ctx, GPoint(0,26), GPoint(47,26), offset, line_layer_offset);
+		drawLine(ctx, GPoint(22,55), GPoint(71,55), offset, line_layer_offset+1);
 	} else if (number == 3) {
-		drawHorizontalLine(ctx, GPoint(0,26), GPoint(47,26));
-		drawHorizontalLine(ctx, GPoint(0,55), GPoint(47,55));
+		drawLine(ctx, GPoint(0,26), GPoint(47,26), offset, line_layer_offset);
+		drawLine(ctx, GPoint(0,55), GPoint(47,55), offset, line_layer_offset+1);
 	} else if (number == 4) {
-		drawVerticalLine(ctx, GPoint(35,0), GPoint(35,26));
-		drawHorizontalLine(ctx, GPoint(0,55), GPoint(35,55));
-		drawVerticalLine(ctx, GPoint(35,55), GPoint(35,83));
+		drawLine(ctx, GPoint(35,0), GPoint(35,26), offset, line_layer_offset);
+		drawLine(ctx, GPoint(0,55), GPoint(35,55), offset, line_layer_offset+1);
+		drawLine(ctx, GPoint(35,55), GPoint(35,83), offset, line_layer_offset+2);
 	} else if (number == 5) {
-		drawHorizontalLine(ctx, GPoint(22,26), GPoint(71,26));
-		drawHorizontalLine(ctx, GPoint(0,55), GPoint(47,55));
+		drawLine(ctx, GPoint(22,26), GPoint(71,26), offset, line_layer_offset);
+		drawLine(ctx, GPoint(0,55), GPoint(47,55), offset, line_layer_offset+1);
 	} else if (number == 6) {
-		drawHorizontalLine(ctx, GPoint(22,26), GPoint(71,26));
-		drawHorizontalLine(ctx, GPoint(22,55), GPoint(47,55));
+		drawLine(ctx, GPoint(22,26), GPoint(71,26), offset, line_layer_offset);
+		drawLine(ctx, GPoint(22,55), GPoint(47,55), offset, line_layer_offset+1);
 	} else if (number == 7) {
-		drawHorizontalLine(ctx, GPoint(0,26), GPoint(35,26));
-		drawVerticalLine(ctx, GPoint(35,26), GPoint(35,83));
+		drawLine(ctx, GPoint(0,26), GPoint(35,26), offset, line_layer_offset);
+		drawLine(ctx, GPoint(35,26), GPoint(35,83), offset, line_layer_offset+1);
 	} else if (number == 8) {
-		drawHorizontalLine(ctx, GPoint(22,26), GPoint(47,26));
-		drawHorizontalLine(ctx, GPoint(22,55), GPoint(47,55));
+		drawLine(ctx, GPoint(22,26), GPoint(47,26), offset, line_layer_offset);
+		drawLine(ctx, GPoint(22,55), GPoint(47,55), offset, line_layer_offset+1);
 	} else if (number == 9) {
-		drawHorizontalLine(ctx, GPoint(22,26), GPoint(47,26));
-		drawHorizontalLine(ctx, GPoint(0,55), GPoint(47,55));
-	} else {
-		drawVerticalLine(ctx, GPoint(35,26), GPoint(35,55));
+		drawLine(ctx, GPoint(22,26), GPoint(47,26), offset, line_layer_offset);
+		drawLine(ctx, GPoint(0,55), GPoint(47,55), offset, line_layer_offset+1);
+  } else {
+		drawLine(ctx, GPoint(35,26), GPoint(35,55), offset, line_layer_offset);
 	}
 }
 
@@ -93,31 +193,19 @@ void handle_bluetooth_con(bool connected) {
 }
 
 void topLeft_update_callback(Layer *layer, GContext* ctx) {
-	if (invertInterface) {
-		graphics_context_set_fill_color(ctx, GColorWhite);
-	}
-	renderNumber(digits[0], ctx);
+	renderNumber(digits[0], ctx, TOP_LEFT);
 }
 
 void topRight_update_callback(Layer *layer, GContext* ctx) {
-	if (invertInterface) {
-		graphics_context_set_fill_color(ctx, GColorWhite);
-	}
-	renderNumber(digits[1], ctx);
+	renderNumber(digits[1], ctx, TOP_RIGHT);
 }
 
 void bottomLeft_update_callback(Layer *layer, GContext* ctx) {
-	if (invertInterface) {
-		graphics_context_set_fill_color(ctx, GColorWhite);
-	}
-	renderNumber(digits[2], ctx);
+	renderNumber(digits[2], ctx, BOTTOM_LEFT);
 }
 
 void bottomRight_update_callback(Layer *layer, GContext* ctx) {
-	if (invertInterface) {
-		graphics_context_set_fill_color(ctx, GColorWhite);
-	}
-	renderNumber(digits[3], ctx);
+	renderNumber(digits[3], ctx, BOTTOM_RIGHT);
 }
 
 void process_tuple(Tuple *t) {
@@ -137,11 +225,6 @@ void process_tuple(Tuple *t) {
 		} else {
 			window_set_background_color(window, GColorWhite);
 		}
-		layer_mark_dirty(layers[0]);
-		layer_mark_dirty(layers[1]);
-		layer_mark_dirty(layers[2]);
-		layer_mark_dirty(layers[3]);
-		layer_mark_dirty(canvas);
 	} else if (key == KEY_BLUETOOTH) {
 		if (strcmp(string_value, "on") == 0) {
 			bluetooth_connection_service_subscribe(handle_bluetooth_con);
@@ -152,7 +235,6 @@ void process_tuple(Tuple *t) {
 			bluetoothIndicator = false;
 			bluetoothConnection = true;
 		}
-		layer_mark_dirty(canvas);
 	}
 }
 
@@ -167,6 +249,7 @@ void in_received_handler(DictionaryIterator *iter, void *context) {
       process_tuple(t);
 		}
 	}
+  layer_mark_dirty(canvas);
 }
 
 void handle_minute_tick(struct tm *tick_time, TimeUnits units_changed) {
@@ -174,26 +257,25 @@ void handle_minute_tick(struct tm *tick_time, TimeUnits units_changed) {
 	int minute = tick_time->tm_min;
 	if (digits[1] != hour % 10) {
 		digits[1] = hour % 10;
-		layer_mark_dirty(layers[1]);
+		layer_mark_dirty(digit_layers[1]);
 	}
 	if (digits[0] != hour / 10 % 10) {
 		digits[0] = hour / 10 % 10;
-		layer_mark_dirty(layers[0]);
+		layer_mark_dirty(digit_layers[0]);
 	}
 	if (digits[3] != minute % 10) {
 		digits[3] = minute % 10;
-		layer_mark_dirty(layers[3]);
+		layer_mark_dirty(digit_layers[3]);
 	}
 	if (digits[2] != minute / 10 % 10) {
 		digits[2] = minute / 10 % 10;
-		layer_mark_dirty(layers[2]);
+		layer_mark_dirty(digit_layers[2]);
 	}
 }
 
 void handle_init(void) {
 	window = window_create();
-	window_stack_push(window, true);
-
+  window_set_fullscreen(window,true);
 	app_message_register_inbox_received(in_received_handler);
 	app_message_open(512, 512);
 
@@ -230,23 +312,34 @@ void handle_init(void) {
 	layer_set_update_proc(canvas, canvas_update_callback);
 	layer_add_child(window_layer, canvas);
 
-	layers[0] = layer_create(GRect(0,0,71,83));
-	layer_set_update_proc(layers[0], topLeft_update_callback);
-	layer_add_child(window_layer, layers[0]);
+	digit_layers[0] = layer_create(GRect(0,0,71,83));
+	layer_set_update_proc(digit_layers[0], topLeft_update_callback);
+	layer_add_child(window_layer, digit_layers[0]);
 
-	layers[1] = layer_create(GRect(73,0,71,83));
-	layer_set_update_proc(layers[1], topRight_update_callback);
-	layer_add_child(window_layer, layers[1]);
+	digit_layers[1] = layer_create(GRect(73,0,71,83));
+	layer_set_update_proc(digit_layers[1], topRight_update_callback);
+	layer_add_child(window_layer, digit_layers[1]);
 
-	layers[2] = layer_create(GRect(0,85,71,83));
-	layer_set_update_proc(layers[2], bottomLeft_update_callback);
-	layer_add_child(window_layer, layers[2]);
+	digit_layers[2] = layer_create(GRect(0,85,71,83));
+	layer_set_update_proc(digit_layers[2], bottomLeft_update_callback);
+	layer_add_child(window_layer, digit_layers[2]);
 
-	layers[3] = layer_create(GRect(73,85,71,83));
-	layer_set_update_proc(layers[3], bottomRight_update_callback);
-	layer_add_child(window_layer, layers[3]);
+	digit_layers[3] = layer_create(GRect(73,85,71,83));
+	layer_set_update_proc(digit_layers[3], bottomRight_update_callback);
+	layer_add_child(window_layer, digit_layers[3]);
+  
+  // create the line objects
+  
+  for (int i=0; i<(5*4); i++) {
+    line_layers[i] = layer_create(GRect(0,0,0,0));
+    layer_set_clips(line_layers[i],true);
+    layer_set_update_proc(line_layers[i],drawLine_callback);
+    layer_add_child(window_layer,line_layers[i]);
+    line_animations[i]=NULL;
+  }
 
 	tick_timer_service_subscribe(MINUTE_UNIT, handle_minute_tick);
+  window_stack_push(window, false);
 }
 
 void handle_deinit(void) {
