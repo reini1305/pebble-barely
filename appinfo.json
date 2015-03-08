@@ -5,12 +5,19 @@
   "companyName": "Phil Plueckthun",
   "versionCode": 4,
   "versionLabel": "1.3",
-  "capabilities": [ "configurable" ],
+  "capabilities": [
+    "configurable"
+  ],
   "watchapp": {
     "watchface": true
   },
   "appKeys": {},
   "resources": {
     "media": []
-  }
+  },
+  "targetPlatforms": [
+    "aplite",
+    "basalt"
+  ],
+  "sdkVersion": "3"
 }
