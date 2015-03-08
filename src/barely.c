@@ -49,8 +49,13 @@ static void animation_stopped(PropertyAnimation *animation, bool finished, void 
 
 static void animate_layer_bounds(int layerid, GRect fromRect, GRect toRect)
 {
+#ifdef PBL_BASALT
   if(animation_is_scheduled(property_animation_get_animation(line_animations[layerid]))) // already running?
     return;
+#else
+  if(animation_is_scheduled((Animation*)(line_animations[layerid]))) // already running?
+    return;
+#endif
   
   line_animations[layerid] = property_animation_create_layer_frame(line_layers[layerid], &fromRect, &toRect);
   animation_set_handlers((Animation*) line_animations[layerid], (AnimationHandlers) {
@@ -107,7 +112,10 @@ void drawLine(GContext* ctx, GPoint start, GPoint goal, GPoint offset, int layer
 }
 
 void drawLine_callback(Layer *layer, GContext* ctx) {
-  graphics_context_set_fill_color(ctx,GColorBlack);
+  if(invertInterface)
+    graphics_context_set_fill_color(ctx,GColorWhite);
+  else
+    graphics_context_set_fill_color(ctx,GColorBlack);
   graphics_fill_rect(ctx,GRect(0,0,144,168),0,GCornerNone);
 }
 

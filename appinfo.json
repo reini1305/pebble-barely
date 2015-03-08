@@ -3,7 +3,7 @@
   "shortName": "Barely",
   "longName": "Barely",
   "companyName": "Phil Plueckthun",
-  "versionCode": 4,
+  "versionCode": 9,
   "versionLabel": "1.3",
   "capabilities": [ "configurable" ],
   "watchapp": {
