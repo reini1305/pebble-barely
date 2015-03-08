@@ -1,10 +1,5 @@
 #include <pebble.h>
 
-enum {
-	KEY_INVERTED = 0,
-	KEY_BLUETOOTH = 1,
-};
-
 #define PERSIST_INVERTED 1
 #define PERSIST_BLUETOOTH 2
 #define TOP_LEFT 0
@@ -224,50 +219,6 @@ void bottomRight_update_callback(Layer *layer, GContext* ctx) {
 	renderNumber(digits[3], ctx, BOTTOM_RIGHT);
 }
 
-void process_tuple(Tuple *t) {
-	int key = t->key;
-	char string_value[32];
-	strcpy(string_value, t->value->cstring);
-
-	if (key == KEY_INVERTED) {
-		if (strcmp(string_value, "on") == 0) {
-			invertInterface = true;
-		} else {
-			invertInterface = false;
-		}
-
-		if (invertInterface) {
-			window_set_background_color(window, GColorBlack);
-		} else {
-			window_set_background_color(window, GColorWhite);
-		}
-	} else if (key == KEY_BLUETOOTH) {
-		if (strcmp(string_value, "on") == 0) {
-			bluetooth_connection_service_subscribe(handle_bluetooth_con);
-			bluetoothIndicator = true;
-			bluetoothConnection = bluetooth_connection_service_peek();
-		} else {
-			bluetooth_connection_service_unsubscribe();
-			bluetoothIndicator = false;
-			bluetoothConnection = true;
-		}
-	}
-}
-
-void in_received_handler(DictionaryIterator *iter, void *context) {
-	Tuple *t = dict_read_first(iter);
-	if(t) {
-		process_tuple(t);
-	}
-  	while(t != NULL) {
-		t = dict_read_next(iter);
-		if(t) {
-      process_tuple(t);
-		}
-	}
-  layer_mark_dirty(canvas);
-}
-
 void handle_minute_tick(struct tm *tick_time, TimeUnits units_changed) {
 	int hour = get_display_hour(tick_time->tm_hour);
 	int minute = tick_time->tm_min;
@@ -292,8 +243,6 @@ void handle_minute_tick(struct tm *tick_time, TimeUnits units_changed) {
 void handle_init(void) {
 	window = window_create();
   window_set_fullscreen(window,true);
-	app_message_register_inbox_received(in_received_handler);
-	app_message_open(512, 512);
 
 	bluetoothIndicator = persist_exists(PERSIST_BLUETOOTH) ? persist_read_bool(PERSIST_BLUETOOTH) : false;
 	invertInterface = persist_exists(PERSIST_INVERTED) ? persist_read_bool(PERSIST_INVERTED) : false;
