@@ -3,45 +3,19 @@
 enum {
 	KEY_INVERTED = 0,
 	KEY_BLUETOOTH = 1,
-	KEY_VIBE = 2
 };
 
 #define PERSIST_INVERTED 1
 #define PERSIST_BLUETOOTH 2
-#define PERSIST_VIBE 2
 
 static Window *window;
 static Layer *canvas;
-
-static const uint32_t const segmentsFull[] = { 100 };
-static const uint32_t const segmentsQuarterPast[] = { 100, 100, 100 };
-static const uint32_t const segmentsHalf[] = { 100, 100, 100, 100, 100 };
-static const uint32_t const segmentsQuarterTo[] = { 100, 100, 100, 100, 100, 100, 100 };
-
-static VibePattern patternFull = {
-	.durations = segmentsFull,
-	.num_segments = 1,
-};
-static VibePattern patternQuarterPast = {
-	.durations = segmentsQuarterPast,
-	.num_segments = 3,
-};
-static VibePattern patternHalf = {
-	.durations = segmentsHalf,
-	.num_segments = 5,
-};
-static VibePattern patternQuarterTo = {
-	.durations = segmentsQuarterTo,
-	.num_segments = 7,
-};
 
 static Layer *layers[4];
 int digits[4];
 
 bool invertInterface = false;
 bool bluetoothIndicator = false;
-bool vibeTime = false;
-
 bool bluetoothConnection = true;
 
 static unsigned short get_display_hour(unsigned short hour) {
@@ -148,7 +122,6 @@ void bottomRight_update_callback(Layer *layer, GContext* ctx) {
 
 void process_tuple(Tuple *t) {
 	int key = t->key;
-	int value = t->value->int32;
 	char string_value[32];
 	strcpy(string_value, t->value->cstring);
 
@@ -180,12 +153,6 @@ void process_tuple(Tuple *t) {
 			bluetoothConnection = true;
 		}
 		layer_mark_dirty(canvas);
-	} else if (key == KEY_VIBE) {
-		if (strcmp(string_value, "on") == 0) {
-			vibeTime = true;
-		} else {
-			vibeTime = false;
-		}
 	}
 }
 
@@ -221,19 +188,6 @@ void handle_minute_tick(struct tm *tick_time, TimeUnits units_changed) {
 		digits[2] = minute / 10 % 10;
 		layer_mark_dirty(layers[2]);
 	}
-
-	if (vibeTime && minute % 15 == 0) {
-		int phase = minute / 15;
-		if (phase == 0) {
-			vibes_enqueue_custom_pattern(patternFull);
-		} else if (phase == 1) {
-			vibes_enqueue_custom_pattern(patternQuarterPast);
-		} else if (phase == 2) {
-			vibes_enqueue_custom_pattern(patternHalf);
-		} else if (phase == 4) {
-			vibes_enqueue_custom_pattern(patternQuarterTo);
-		}
-	}
 }
 
 void handle_init(void) {
@@ -245,8 +199,7 @@ void handle_init(void) {
 
 	bluetoothIndicator = persist_exists(PERSIST_BLUETOOTH) ? persist_read_bool(PERSIST_BLUETOOTH) : false;
 	invertInterface = persist_exists(PERSIST_INVERTED) ? persist_read_bool(PERSIST_INVERTED) : false;
-	vibeTime = persist_exists(PERSIST_VIBE) ? persist_read_bool(PERSIST_VIBE) : false;
-
+  
 	if (invertInterface) {
 		window_set_background_color(window, GColorBlack);
 	} else {
@@ -265,18 +218,10 @@ void handle_init(void) {
 	tick_time = localtime(&temp);
 	int hour = get_display_hour(tick_time->tm_hour);
 	int minute = tick_time->tm_min;
-	if (digits[1] != hour % 10) {
-		digits[1] = hour % 10;
-	}
-	if (digits[0] != hour / 10 % 10) {
-		digits[0] = hour / 10 % 10;
-	}
-	if (digits[3] != minute % 10) {
-		digits[3] = minute % 10;
-	}
-	if (digits[2] != minute / 10 % 10) {
-		digits[2] = minute / 10 % 10;
-	}
+  digits[1] = hour % 10;
+  digits[0] = hour / 10 % 10;
+  digits[3] = minute % 10;
+  digits[2] = minute / 10 % 10;
 
 	Layer *window_layer = window_get_root_layer(window);
 	GRect bounds = layer_get_frame(window_layer);
@@ -312,7 +257,7 @@ void handle_deinit(void) {
 	window_destroy(window);
 	persist_write_bool(PERSIST_INVERTED, invertInterface);
 	persist_write_bool(PERSIST_BLUETOOTH, bluetoothIndicator);
-	persist_write_bool(PERSIST_VIBE, vibeTime);
+
 }
 
 int main(void) {
