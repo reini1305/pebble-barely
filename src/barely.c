@@ -20,11 +20,16 @@ int digits[4];
 
 static Layer *line_layers[5*4]; // max 5 layers per digit
 static PropertyAnimation *line_animations[5*4];
+static AppTimer *wait_timer;
 
 bool invertInterface = false;
 bool bluetoothIndicator = false;
 bool bluetoothConnection = true;
 bool animationRunning = false;
+
+static void wait_timer_callback(void* data) {
+  for (int i=0;i<4;layer_add_child(window_get_root_layer(window),digit_layers[i++])); // wait a second before we show anything
+}
 
 static unsigned short get_display_hour(unsigned short hour) {
 	if (clock_is_24h_style()) {
@@ -35,20 +40,23 @@ static unsigned short get_display_hour(unsigned short hour) {
 }
 
 static void animation_stopped(PropertyAnimation *animation, bool finished, void *data) {
+#ifndef PBL_COLOR
   property_animation_destroy(animation);
   animation=NULL;
+  //APP_LOG(APP_LOG_LEVEL_DEBUG,"Destroy called!");
+#endif
 }
 
 static void animate_layer_bounds(int layerid, GRect fromRect, GRect toRect)
 {
-  if(line_animations[layerid]) // already running?
+  if(animation_is_scheduled(property_animation_get_animation(line_animations[layerid]))) // already running?
     return;
   
   line_animations[layerid] = property_animation_create_layer_frame(line_layers[layerid], &fromRect, &toRect);
   animation_set_handlers((Animation*) line_animations[layerid], (AnimationHandlers) {
     .stopped = (AnimationStoppedHandler) animation_stopped,
   }, NULL);
-  animation_set_duration((Animation*)line_animations[layerid],3000);
+  animation_set_duration((Animation*)line_animations[layerid],2000);
   animation_set_curve((Animation*)line_animations[layerid],AnimationCurveEaseInOut);
   //APP_LOG(APP_LOG_LEVEL_DEBUG,"animation running...");
   animation_schedule((Animation*)line_animations[layerid]);
@@ -73,13 +81,13 @@ void drawLine(GContext* ctx, GPoint start, GPoint goal, GPoint offset, int layer
   if(horizontal) {
     from.origin.x = (goal.x - start.x) / 2 + start.x + offset.x;
     from.origin.y = start.y - 1 + offset.y;
-    from.size.w = 3;
+    from.size.w = 0;
     from.size.h = 3;
   } else {
     from.origin.x = start.x - 1 + offset.x;
     from.origin.y = (goal.y - start.y) / 2 + start.y - 1 + offset.y;
     from.size.w = 3;
-    from.size.h = 3;
+    from.size.h = 0;
   }
   // animation ends in start and goal
   if(horizontal) {
@@ -93,7 +101,7 @@ void drawLine(GContext* ctx, GPoint start, GPoint goal, GPoint offset, int layer
     to.size.w = 3;
     to.size.h = goal.y - start.y + 3;
   }
-  layer_set_frame(line_layers[layerid],from);
+  //layer_set_frame(line_layers[layerid],from);
   //to=to;
   animate_layer_bounds(layerid, from, to);
 }
@@ -314,19 +322,19 @@ void handle_init(void) {
 
 	digit_layers[0] = layer_create(GRect(0,0,71,83));
 	layer_set_update_proc(digit_layers[0], topLeft_update_callback);
-	layer_add_child(window_layer, digit_layers[0]);
+	//layer_add_child(window_layer, digit_layers[0]);
 
 	digit_layers[1] = layer_create(GRect(73,0,71,83));
 	layer_set_update_proc(digit_layers[1], topRight_update_callback);
-	layer_add_child(window_layer, digit_layers[1]);
+	//layer_add_child(window_layer, digit_layers[1]);
 
 	digit_layers[2] = layer_create(GRect(0,85,71,83));
 	layer_set_update_proc(digit_layers[2], bottomLeft_update_callback);
-	layer_add_child(window_layer, digit_layers[2]);
+	//layer_add_child(window_layer, digit_layers[2]);
 
 	digit_layers[3] = layer_create(GRect(73,85,71,83));
 	layer_set_update_proc(digit_layers[3], bottomRight_update_callback);
-	layer_add_child(window_layer, digit_layers[3]);
+	//layer_add_child(window_layer, digit_layers[3]);
   
   // create the line objects
   
@@ -340,6 +348,7 @@ void handle_init(void) {
 
 	tick_timer_service_subscribe(MINUTE_UNIT, handle_minute_tick);
   window_stack_push(window, false);
+  wait_timer = app_timer_register(500,wait_timer_callback,NULL);
 }
 
 void handle_deinit(void) {
