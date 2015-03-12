@@ -62,14 +62,6 @@ static void animate_layer_bounds(int layerid, GRect fromRect, GRect toRect)
   animation_schedule((Animation*)line_animations[layerid]);
 }
 
-void drawLineHorizontal(GContext* ctx, GPoint start, GPoint goal) {
-	graphics_fill_rect(ctx, GRect(start.x, start.y - 1, goal.x - start.x, 3), 0, GCornerNone);
-}
-
-void drawLineVertical(GContext* ctx, GPoint start, GPoint goal) {
-	graphics_fill_rect(ctx, GRect(start.x - 1, start.y - 1, 3, goal.y - start.y + 3), 0, GCornerNone);
-}
-
 void drawLine(GContext* ctx, GPoint start, GPoint goal, GPoint offset, int layerid) {
   GRect from;
   GRect to;
@@ -111,6 +103,7 @@ void drawLine_callback(Layer *layer, GContext* ctx) {
     graphics_context_set_fill_color(ctx,GColorWhite);
   else
     graphics_context_set_fill_color(ctx,GColorBlack);
+  //GRect bounds = layer_get_frame(layer);
   graphics_fill_rect(ctx,GRect(0,0,144,168),0,GCornerNone);
 }
 
