@@ -132,8 +132,6 @@ void renderNumber(int number, GContext* ctx, unsigned char quadrant) {
       line_layer_offset=15;
       break;
   }
-  // reset line layers
-  for (int i=0; i<5; layer_set_frame(line_layers[line_layer_offset+i],GRect(0,0,0,0)),i++);
   
   // draw new line layers
   //offset=offset;
@@ -146,30 +144,57 @@ void renderNumber(int number, GContext* ctx, unsigned char quadrant) {
 	} else if (number == 2) {
 		drawLine(ctx, GPoint(0,26), GPoint(47,26), offset, line_layer_offset);
 		drawLine(ctx, GPoint(22,55), GPoint(71,55), offset, line_layer_offset+1);
+    drawLine(ctx, GPoint(0,0), GPoint(0,0), offset, line_layer_offset+2);
+    drawLine(ctx, GPoint(0,0), GPoint(0,0), offset, line_layer_offset+3);
+    drawLine(ctx, GPoint(0,0), GPoint(0,0), offset, line_layer_offset+4);
 	} else if (number == 3) {
 		drawLine(ctx, GPoint(0,26), GPoint(47,26), offset, line_layer_offset);
 		drawLine(ctx, GPoint(0,55), GPoint(47,55), offset, line_layer_offset+1);
+    drawLine(ctx, GPoint(0,0), GPoint(0,0), offset, line_layer_offset+2);
+    drawLine(ctx, GPoint(0,0), GPoint(0,0), offset, line_layer_offset+3);
+    drawLine(ctx, GPoint(0,0), GPoint(0,0), offset, line_layer_offset+4);
 	} else if (number == 4) {
 		drawLine(ctx, GPoint(35,0), GPoint(35,26), offset, line_layer_offset);
 		drawLine(ctx, GPoint(0,55), GPoint(35,55), offset, line_layer_offset+1);
 		drawLine(ctx, GPoint(35,55), GPoint(35,83), offset, line_layer_offset+2);
+    drawLine(ctx, GPoint(0,0), GPoint(0,0), offset, line_layer_offset+3);
+    drawLine(ctx, GPoint(0,0), GPoint(0,0), offset, line_layer_offset+4);
 	} else if (number == 5) {
 		drawLine(ctx, GPoint(22,26), GPoint(71,26), offset, line_layer_offset);
 		drawLine(ctx, GPoint(0,55), GPoint(47,55), offset, line_layer_offset+1);
+    drawLine(ctx, GPoint(0,0), GPoint(0,0), offset, line_layer_offset+2);
+    drawLine(ctx, GPoint(0,0), GPoint(0,0), offset, line_layer_offset+3);
+    drawLine(ctx, GPoint(0,0), GPoint(0,0), offset, line_layer_offset+4);
 	} else if (number == 6) {
 		drawLine(ctx, GPoint(22,26), GPoint(71,26), offset, line_layer_offset);
 		drawLine(ctx, GPoint(22,55), GPoint(47,55), offset, line_layer_offset+1);
+    drawLine(ctx, GPoint(0,0), GPoint(0,0), offset, line_layer_offset+2);
+    drawLine(ctx, GPoint(0,0), GPoint(0,0), offset, line_layer_offset+3);
+    drawLine(ctx, GPoint(0,0), GPoint(0,0), offset, line_layer_offset+4);
 	} else if (number == 7) {
 		drawLine(ctx, GPoint(0,26), GPoint(35,26), offset, line_layer_offset);
 		drawLine(ctx, GPoint(35,26), GPoint(35,83), offset, line_layer_offset+1);
+    drawLine(ctx, GPoint(0,0), GPoint(0,0), offset, line_layer_offset+2);
+    drawLine(ctx, GPoint(0,0), GPoint(0,0), offset, line_layer_offset+3);
+    drawLine(ctx, GPoint(0,0), GPoint(0,0), offset, line_layer_offset+4);
 	} else if (number == 8) {
 		drawLine(ctx, GPoint(22,26), GPoint(47,26), offset, line_layer_offset);
 		drawLine(ctx, GPoint(22,55), GPoint(47,55), offset, line_layer_offset+1);
+    drawLine(ctx, GPoint(0,0), GPoint(0,0), offset, line_layer_offset+2);
+    drawLine(ctx, GPoint(0,0), GPoint(0,0), offset, line_layer_offset+3);
+    drawLine(ctx, GPoint(0,0), GPoint(0,0), offset, line_layer_offset+4);
 	} else if (number == 9) {
 		drawLine(ctx, GPoint(22,26), GPoint(47,26), offset, line_layer_offset);
 		drawLine(ctx, GPoint(0,55), GPoint(47,55), offset, line_layer_offset+1);
+    drawLine(ctx, GPoint(0,0), GPoint(0,0), offset, line_layer_offset+2);
+    drawLine(ctx, GPoint(0,0), GPoint(0,0), offset, line_layer_offset+3);
+    drawLine(ctx, GPoint(0,0), GPoint(0,0), offset, line_layer_offset+4);
   } else {
 		drawLine(ctx, GPoint(35,26), GPoint(35,55), offset, line_layer_offset);
+    drawLine(ctx, GPoint(0,0), GPoint(0,0), offset, line_layer_offset+1);
+    drawLine(ctx, GPoint(0,0), GPoint(0,0), offset, line_layer_offset+2);
+    drawLine(ctx, GPoint(0,0), GPoint(0,0), offset, line_layer_offset+3);
+    drawLine(ctx, GPoint(0,0), GPoint(0,0), offset, line_layer_offset+4);
 	}
 }
 
@@ -192,6 +217,8 @@ void canvas_update_callback(Layer *layer, GContext* ctx) {
 		graphics_fill_rect(ctx, GRect(0,83,144,1), 0, GCornerNone);
 		graphics_fill_rect(ctx, GRect(0,85,144,1), 0, GCornerNone);
 	}
+  // reset line layers
+  //for (int i=0; i<5*4; layer_set_frame(line_layers[i++],GRect(0,0,0,0)));
 }
 
 void handle_bluetooth_con(bool connected) {
