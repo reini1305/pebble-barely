@@ -1,18 +1,46 @@
 {
-  "uuid": "dfaa12a0-b10c-42af-ad95-9a7db7ec2d52",
-  "shortName": "Barely",
-  "longName": "Barely",
-  "companyName": "Phil Plueckthun",
-  "versionCode": 9,
-  "versionLabel": "1.3",
-  "capabilities": [ ],
+  "uuid": "d02230ae-dfff-4e6c-a794-1a8384657511",
+  "shortName": "BarelyAnimated",
+  "longName": "BarelyAnimated",
+  "companyName": "Christian Reinbacher",
+  "versionCode": 1,
+  "versionLabel": "0.1",
+  "capabilities": [ "configurable"],
   "watchapp": {
     "watchface": true
   },
-  "appKeys": {},
+  "appKeys": {
+      "invert": 0,
+      "bluetooth": 1
+  },
   "resources": {
     "media": []
   },
+  "preferences": {
+    "embedded": true,
+    "debug": false,
+    "url": "http://wiki.pebble-autoconfig.googlecode.com/git/example/autoconfig.html",
+    "description": "This page is used to configure <strong>Barely Animated</strong>. Fill in the form and press <em>Save</em> to transfer the settings to your watch. If you like what I'm doing, consider a donation: <br><a href='https://pledgie.com/campaigns/28156'><img alt='Click here to lend your support to: Christian Reinbachers Pebble Apps and make a donation at pledgie.com !' src='https://pledgie.com/campaigns/28156.png?skin_name=chrome' border='0' ></a>",
+    "items": [
+              {
+              "name": "invert",
+              "title": "Alternative color scheme?",
+              "type": "boolean",
+              "off-text": "No",
+              "on-text": "Yes",
+              "default": false
+              },
+              {
+              "name": "bluetooth",
+              "title": "Vibrate on BT disconnect?",
+              "type": "boolean",
+              "off-text": "No",
+              "on-text": "Yes",
+              "default": false
+              }
+              ]
+  },
+
   "targetPlatforms": [
     "aplite",
     "basalt"

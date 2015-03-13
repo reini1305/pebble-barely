@@ -1,7 +1,6 @@
 #include <pebble.h>
+#include "autoconfig.h"
 
-#define PERSIST_INVERTED 1
-#define PERSIST_BLUETOOTH 2
 #define TOP_LEFT 0
 #define TOP_RIGHT 1
 #define BOTTOM_LEFT 2
@@ -20,7 +19,14 @@ static AppTimer *wait_timer;
 bool invertInterface = false;
 bool bluetoothIndicator = false;
 bool bluetoothConnection = true;
-bool animationRunning = false;
+
+static void in_received_handler(DictionaryIterator *iter, void *context) {
+  // Let Pebble Autoconfig handle received settings
+  autoconfig_in_received_handler(iter, context);
+  invertInterface = getInvert();
+  bluetoothIndicator = getBluetooth();
+  layer_mark_dirty(canvas);
+}
 
 static void wait_timer_callback(void* data) {
   for (int i=0;i<4;layer_add_child(window_get_root_layer(window),digit_layers[i++])); // wait a second before we show anything
@@ -193,6 +199,8 @@ void canvas_update_callback(Layer *layer, GContext* ctx) {
 
 void handle_bluetooth_con(bool connected) {
 	bluetoothConnection = connected;
+  if(!connected)
+    vibes_long_pulse();
 	layer_mark_dirty(canvas);
 }
 
@@ -215,30 +223,35 @@ void bottomRight_update_callback(Layer *layer, GContext* ctx) {
 void handle_minute_tick(struct tm *tick_time, TimeUnits units_changed) {
 	int hour = get_display_hour(tick_time->tm_hour);
 	int minute = tick_time->tm_min;
-	if (digits[1] != hour % 10) {
+	//if (digits[1] != hour % 10) {
 		digits[1] = hour % 10;
-		layer_mark_dirty(digit_layers[1]);
-	}
-	if (digits[0] != hour / 10 % 10) {
+	//	layer_mark_dirty(digit_layers[1]);
+	//}
+	//if (digits[0] != hour / 10 % 10) {
 		digits[0] = hour / 10 % 10;
-		layer_mark_dirty(digit_layers[0]);
-	}
-	if (digits[3] != minute % 10) {
+	//	layer_mark_dirty(digit_layers[0]);
+	//}
+	//if (digits[3] != minute % 10) {
 		digits[3] = minute % 10;
-		layer_mark_dirty(digit_layers[3]);
-	}
-	if (digits[2] != minute / 10 % 10) {
+//		layer_mark_dirty(digit_layers[3]);
+	//}
+	//if (digits[2] != minute / 10 % 10) {
 		digits[2] = minute / 10 % 10;
-		layer_mark_dirty(digit_layers[2]);
-	}
+		//layer_mark_dirty(digit_layers[2]);
+	//}
+  layer_mark_dirty(canvas);
 }
 
 void handle_init(void) {
 	window = window_create();
   window_set_fullscreen(window,true);
+  
+  autoconfig_init();
+  // Register our custom receive handler which in turn will call Pebble Autoconfigs receive handler
+  app_message_register_inbox_received(in_received_handler);
 
-	bluetoothIndicator = persist_exists(PERSIST_BLUETOOTH) ? persist_read_bool(PERSIST_BLUETOOTH) : false;
-	invertInterface = persist_exists(PERSIST_INVERTED) ? persist_read_bool(PERSIST_INVERTED) : false;
+	bluetoothIndicator = getBluetooth();
+	invertInterface = getInvert();
   
 	if (invertInterface) {
 		window_set_background_color(window, GColorBlack);
@@ -307,8 +320,8 @@ void handle_deinit(void) {
 		bluetooth_connection_service_unsubscribe();
 	}
 	window_destroy(window);
-	persist_write_bool(PERSIST_INVERTED, invertInterface);
-	persist_write_bool(PERSIST_BLUETOOTH, bluetoothIndicator);
+  autoconfig_deinit();
+
 
 }
 

@@ -12,21 +12,25 @@ out = 'build'
 
 def options(ctx):
     ctx.load('pebble_sdk')
+    ctx.load('autoconfig', tooldir='wtools')
 
 def configure(ctx):
     ctx.load('pebble_sdk')
+    ctx.load('autoconfig', tooldir='wtools')
 
 def build(ctx):
     ctx.load('pebble_sdk')
-
+    ctx.load('autoconfig', tooldir='wtools')
+	
     build_worker = os.path.exists('worker_src')
     binaries = []
 
     for p in ctx.env.TARGET_PLATFORMS:
         ctx.set_env(ctx.all_envs[p])
         app_elf='{}/pebble-app.elf'.format(ctx.env.BUILD_DIR)
-        ctx.pbl_program(source=ctx.path.ant_glob('src/**/*.c'),
-        target=app_elf)
+        ctx.pbl_autoconfprogram(
+        	source=ctx.path.ant_glob(['src/**/*.c']),
+        	target=app_elf)
 
         if build_worker:
             worker_elf='{}/pebble-worker.elf'.format(ctx.env.BUILD_DIR)
