@@ -20,14 +20,6 @@ bool invertInterface = false;
 bool bluetoothIndicator = false;
 bool bluetoothConnection = true;
 
-static void in_received_handler(DictionaryIterator *iter, void *context) {
-  // Let Pebble Autoconfig handle received settings
-  autoconfig_in_received_handler(iter, context);
-  invertInterface = getInvert();
-  bluetoothIndicator = getBluetooth();
-  layer_mark_dirty(canvas);
-}
-
 static void wait_timer_callback(void* data) {
   for (int i=0;i<4;layer_add_child(window_get_root_layer(window),digit_layers[i++])); // wait a second before we show anything
 }
@@ -184,7 +176,12 @@ void renderNumber(int number, GContext* ctx, unsigned char quadrant) {
 void canvas_update_callback(Layer *layer, GContext* ctx) {
 	if (invertInterface) {
 		graphics_context_set_fill_color(ctx, GColorWhite);
+    //window_set_background_color(window, GColorBlack);
 	}
+  else {
+    graphics_context_set_fill_color(ctx, GColorBlack);
+    //window_set_background_color(window, GColorWhite);
+  }
 
 	if (bluetoothConnection) {
 		graphics_fill_rect(ctx, GRect(71,0,3,168), 0, GCornerNone);
@@ -202,6 +199,25 @@ void handle_bluetooth_con(bool connected) {
   if(!connected)
     vibes_long_pulse();
 	layer_mark_dirty(canvas);
+}
+
+static void in_received_handler(DictionaryIterator *iter, void *context) {
+  // Let Pebble Autoconfig handle received settings
+  autoconfig_in_received_handler(iter, context);
+  invertInterface = getInvert();
+  bluetoothIndicator = getBluetooth();
+  if(invertInterface)
+    window_set_background_color(window, GColorBlack);
+  else
+    window_set_background_color(window, GColorWhite);
+  if (bluetoothIndicator) {
+    bluetooth_connection_service_subscribe(handle_bluetooth_con);
+    bluetoothConnection = bluetooth_connection_service_peek();
+  } else {
+    bluetoothConnection = true;
+    bluetooth_connection_service_unsubscribe();
+  }
+  layer_mark_dirty(canvas);
 }
 
 void topLeft_update_callback(Layer *layer, GContext* ctx) {

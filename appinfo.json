@@ -32,7 +32,7 @@
               },
               {
               "name": "bluetooth",
-              "title": "Vibrate on BT disconnect?",
+              "title": "Alert on BT disconnect?",
               "type": "boolean",
               "off-text": "No",
               "on-text": "Yes",
