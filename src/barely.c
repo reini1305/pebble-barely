@@ -54,7 +54,7 @@ static void animate_layer_bounds(int layerid, GRect fromRect, GRect toRect)
   animation_set_handlers((Animation*) line_animations[layerid], (AnimationHandlers) {
     .stopped = (AnimationStoppedHandler) animation_stopped,
   }, NULL);
-  animation_set_duration((Animation*)line_animations[layerid],2000);
+  animation_set_duration((Animation*)line_animations[layerid],getLength());
   animation_set_curve((Animation*)line_animations[layerid],AnimationCurveEaseInOut);
   //APP_LOG(APP_LOG_LEVEL_DEBUG,"animation running...");
   animation_schedule((Animation*)line_animations[layerid]);

@@ -11,7 +11,8 @@
   },
   "appKeys": {
       "invert": 0,
-      "bluetooth": 1
+      "bluetooth": 1,
+      "length": 2
   },
   "resources": {
     "media": [
@@ -43,6 +44,15 @@
               "off-text": "No",
               "on-text": "Yes",
               "default": false
+              },
+              {
+              "name": "length",
+              "title": "Animation Length",
+              "description": "Between 100 and 3000ms",
+              "type": "integer",
+              "min": 100,
+              "max": 3000,
+              "default": 2000
               }
               ]
   },
